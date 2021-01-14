@@ -15,7 +15,6 @@ const itemSchema = {
   users: Array
 };
 
-console.log(TOKEN);
 bot.login(TOKEN);
 
 bot.on("ready", async () => {
@@ -36,15 +35,26 @@ bot.on("message", async msg => {
     console.log(item);
     if (msg.content.split(" ")[4] === "added") {
       //SEARCH STORAGE FOR AUTHOR AND THEN CHECK ITEM NAME ACROSS THEIR ITEMS-WANTED AND NOTIFY THEM
-      let i = await items.findOne({ name: item });
-      if (i.users.length > 0) {
-        msg.channel.send("Check the guild stash for your item " + i.users);
+      let newItems = await items.find();
+      let userList = [];
+      console.log(newItems);
+      let result = newItems.filter(i1 =>
+        item.toLocaleLowerCase().includes(i1.name.toLowerCase())
+      );
+      console.log(result);
+      result.forEach(i =>
+        i.users.forEach(u => console.log(userList.push(u)))
+      );
+      console.log(userList);
+      let uniqueUserList = [... new Set(userList)]
+      if (uniqueUserList.length > 0) {
+        msg.channel.send("Check the guild stash for your item " + uniqueUserList);
       }
     }
   }
 
   if (msg.content.startsWith(PREFIX)) {
-    console.log("NEW COMMAND")
+    console.log("NEW COMMAND");
     await parseCommand(msg.content);
   }
   async function parseCommand(content) {
@@ -104,7 +114,7 @@ bot.on("message", async msg => {
           name: wantedItem,
           users: [user.toString()]
         });
-        msg.channel.send("You are now in search of " + "" + wantedItem + "");
+      msg.channel.send("You are now in search of " + "" + wantedItem + "");
     }
   }
   async function getAllItemsForUser() {
@@ -126,11 +136,11 @@ bot.on("message", async msg => {
     return false;
   }
   async function clearAllItems() {
-    wantedItems = getAllItemsForUser();
+    wantedItems = await getAllItemsForUser();
     wantedItems.forEach(async function(i) {
-      let newUsers = i.users.filter(u => e != user.toString());
-      i.users = newUsers;
-      await items.update({name: i.name},{users: i.users});
+      let newUsers = i.users.filter(e => e != user.toString());
+      console.log(newUsers)
+      await items.update({ name: i.name }, { users: newUsers });
     });
 
     msg.channel.send("Your list is cleared");
@@ -139,20 +149,20 @@ bot.on("message", async msg => {
     let item = await items.findOne({
       name: unwantedItem
     });
-    console.log("UNWATNED ITEM: " + item)
+    console.log("UNWATNED ITEM: " + item);
     if (item != undefined) {
-      console.log("UNWATNED ITEM EXISTS")
+      console.log("UNWATNED ITEM EXISTS");
       if (item.users.includes(user.toString())) {
         let newUsers = item.users.filter(e => e != user.toString());
         item.users = newUsers;
-        await items.update({name: item.name},{users: item.users});
+        await items.update({ name: item.name }, { users: item.users });
         msg.channel.send("Removed " + unwantedItem + " from your list!");
       } else
         msg.channel.send(
           "You dont want " + unwantedItem + " according to your list!"
         );
     } else {
-      console.log("UNWATNED ITEM DID NOT EXIST")
+      console.log("UNWATNED ITEM DID NOT EXIST");
       await items.create({
         name: unwantedItem,
         users: []
